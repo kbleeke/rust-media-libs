@@ -16,8 +16,8 @@
 //! let value1 = Amf0Value::Number(32.0);
 //! let value2 = Amf0Value::Boolean(true);
 //! let object = Amf0Value::Object(properties);
-//!        
-//! let input = vec![value1, object, value2];        
+//!
+//! let input = vec![value1, object, value2];
 //!
 //! // Serialize the values into a vector of bytes
 //! let serialized_data = serialize(&input).unwrap();

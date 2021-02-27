@@ -9,7 +9,7 @@ use markers;
 use byteorder::{BigEndian, WriteBytesExt};
 
 /// Serializes values into an amf0 encoded vector of bytes
-pub fn serialize(values: &Vec<Amf0Value>) -> Result<Vec<u8>, Amf0SerializationError> {
+pub fn serialize(values: &[Amf0Value]) -> Result<Vec<u8>, Amf0SerializationError> {
     let mut bytes = vec![];
     for value in values {
         serialize_value(value, &mut bytes)?;

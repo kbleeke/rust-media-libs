@@ -60,6 +60,13 @@ pub enum ServerSessionEvent {
         metadata: StreamMetadata,
     },
 
+    /// Amf0 data was received from the client
+    Amf0DataReceived {
+        app_name: String,
+        stream_key: String,
+        data: Vec<Amf0Value>,
+    },
+
     /// Audio data was received from the client
     AudioDataReceived {
         app_name: String,

@@ -154,10 +154,10 @@ impl ServerSession {
                     let message = payload.to_rtmp_message()?;
 
                     let mut message_results = match message {
-                        RtmpMessage::Abort{stream_id} 
+                        RtmpMessage::Abort{stream_id}
                             => self.handle_abort_message(stream_id)?,
 
-                        RtmpMessage::Acknowledgement{sequence_number} 
+                        RtmpMessage::Acknowledgement{sequence_number}
                             => self.handle_acknowledgement_message(sequence_number)?,
 
                         RtmpMessage::Amf0Command{command_name, transaction_id, command_object, additional_arguments}
@@ -664,28 +664,10 @@ impl ServerSession {
         Ok(vec![ServerSessionResult::RaisedEvent(event)])
     }
 
-    fn handle_amf0_data(&mut self, mut data: Vec<Amf0Value>, stream_id: u32) -> Result<Vec<ServerSessionResult>, ServerSessionError> {
+    fn handle_amf0_data(&mut self, data: Vec<Amf0Value>, stream_id: u32) -> Result<Vec<ServerSessionResult>, ServerSessionError> {
         if data.len() == 0 {
             // No data so just do nothing
             return Ok(Vec::new());
-        }
-
-        let first_element = data.remove(0);
-        match first_element {
-            Amf0Value::Utf8String(ref value) if value == "@setDataFrame" => self.handle_amf0_data_set_data_frame(data, stream_id),
-            _ => Ok(Vec::new()),
-        }
-    }
-
-    fn handle_amf0_data_set_data_frame(&mut self, mut data: Vec<Amf0Value>, stream_id: u32) -> Result<Vec<ServerSessionResult>, ServerSessionError> {
-        if data.len() < 2 {
-            // We are expecting a "onMetaData" value and then a property with the actual metadata.  Since
-            // this wasn't provided we don't know how to deal with this message.
-        }
-
-        match data[0] {
-            Amf0Value::Utf8String(ref value) if value == "onMetaData" => (),
-            _ => return Ok(Vec::new()),
         }
 
         if self.connected_app_name.is_none() {
@@ -697,7 +679,7 @@ impl ServerSession {
             None => return Ok(Vec::new()), // Not connected on a known app name.  Shouldn't really happen.
         };
 
-        let publish_stream_key = match self.active_streams.get(&stream_id) {
+        let stream_key = match self.active_streams.get(&stream_id) {
             Some(ref stream) => {
                 match stream.current_state {
                     StreamState::Publishing{ref stream_key, mode: _} => stream_key,
@@ -708,20 +690,11 @@ impl ServerSession {
             None => return Ok(Vec::new()), // Return nothing since this was not sent on an active stream
         };
 
-        let mut metadata = StreamMetadata::new();
-        let object = data.remove(1);
-        let properties_option = object.get_object_properties();
-        match properties_option {
-            Some(properties) => metadata.apply_metadata_values(properties),
-            _ => (),
-        }
-
-        let event = ServerSessionEvent::StreamMetadataChanged {
-            stream_key: publish_stream_key.clone(),
+        let event = ServerSessionEvent::Amf0DataReceived {
             app_name,
-            metadata,
+            stream_key: stream_key.to_owned(),
+            data,
         };
-
         Ok(vec![ServerSessionResult::RaisedEvent(event)])
     }
 
@@ -851,8 +824,8 @@ impl ServerSession {
 
         let payload = message.into_message_payload(self.get_epoch(), 0)?;
         let packet = self.serializer.serialize(&payload, false, false)?;
-        
-        
+
+
         Ok(vec![ServerSessionResult::OutboundResponse(packet)])
     }
 
@@ -1020,7 +993,7 @@ impl ServerSession {
                 let milliseconds = (duration.as_secs() * 1000) + (duration.subsec_nanos() as u64 / 1_000_000);
 
                 // Casting to u32 should auto-wrap the value as expected.  If not a stream will probably
-                // break after 49 days but testing shows it should wrap  
+                // break after 49 days but testing shows it should wrap
                 RtmpTimestamp::new(milliseconds as u32)
             },
 
