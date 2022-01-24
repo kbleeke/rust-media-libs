@@ -12,27 +12,26 @@ being managed (in any direction) each connection should have its own, distinct, 
 It is also expected that a session has been created *after* handshaking has been completed.
 */
 
-mod server;
 mod client;
+mod server;
 
 pub use self::client::ClientSession;
-pub use self::client::ClientSessionEvent;
 pub use self::client::ClientSessionConfig;
 pub use self::client::ClientSessionError;
-pub use self::client::ClientSessionErrorKind;
+pub use self::client::ClientSessionEvent;
 pub use self::client::ClientSessionResult;
 pub use self::client::ClientState;
 pub use self::client::PublishRequestType;
 
+pub use self::server::PublishMode;
 pub use self::server::ServerSession;
-pub use self::server::ServerSessionEvent;
 pub use self::server::ServerSessionConfig;
 pub use self::server::ServerSessionError;
-pub use self::server::ServerSessionErrorKind;
+pub use self::server::ServerSessionEvent;
 pub use self::server::ServerSessionResult;
 
-use std::collections::HashMap;
 use rml_amf0::Amf0Value;
+use std::collections::HashMap;
 
 /// Contains the metadata information a stream may advertise on publishing
 #[derive(PartialEq, Debug, Clone)]
@@ -47,12 +46,12 @@ pub struct StreamMetadata {
     pub audio_sample_rate: Option<u32>,
     pub audio_channels: Option<u32>,
     pub audio_is_stereo: Option<bool>,
-    pub encoder: Option<String>
+    pub encoder: Option<String>,
 }
 
 impl StreamMetadata {
     /// Creates a new (and empty) metadata instance
-    fn new() -> StreamMetadata {
+    pub fn new() -> StreamMetadata {
         StreamMetadata {
             video_width: None,
             video_height: None,
@@ -64,11 +63,14 @@ impl StreamMetadata {
             audio_sample_rate: None,
             audio_channels: None,
             audio_is_stereo: None,
-            encoder: None
+            encoder: None,
         }
     }
 
-    fn apply_metadata_values(&mut self, mut properties: HashMap<String, Amf0Value>) {
+    /// Iterates through the passed in hashmap and uses their values to set the metadata
+    /// properties. The keys are based on standard metadata property names seen from existing
+    /// RTMP encoders.
+    pub fn apply_metadata_values(&mut self, mut properties: HashMap<String, Amf0Value>) {
         for (key, value) in properties.drain() {
             match key.as_ref() {
                 "width" => match value.get_number() {
